@@ -129,6 +129,98 @@ class Tirer {
     }
 }
 
+/**
+ * Setup centralized event listeners for the game
+ * This follows best practice of having a single event listener configuration
+ */
+function setupEventListeners(canvas, ctx) {
+    // Prevent context menu on canvas
+    canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+    // Mouse movement - update ship position
+    document.addEventListener("mousemove", (e) => {
+        if (!vaisseau) return;
+        const rect = canvas.getBoundingClientRect();
+
+        // Account for canvas scaling (displayed size vs drawing surface)
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const sourisX = (e.clientX - rect.left) * scaleX;
+        const sourisY = (e.clientY - rect.top) * scaleY;
+
+        const minX = 0;
+        const maxX = canvas.width - vaisseau.largeur;
+        const minY = 0;
+        const maxY = canvas.height - vaisseau.hauteur;
+
+        vaisseau.x = Math.max(
+            minX,
+            Math.min(maxX, sourisX - vaisseau.largeur / 2),
+        );
+        vaisseau.y = Math.max(
+            minY,
+            Math.min(maxY, sourisY - vaisseau.hauteur / 2),
+        );
+    });
+
+    // Keyboard controls
+    window.addEventListener("keydown", (e) => {
+        if (!vaisseau) return;
+
+        // Shield word typing
+        if (
+            vaisseau.shield &&
+            motActuel &&
+            e.key &&
+            e.key.length === 1 &&
+            /[a-zA-Z]/.test(e.key)
+        ) {
+            saisieMot += e.key.toLowerCase();
+            if (!motActuel.startsWith(saisieMot)) {
+                saisieMot = "";
+            } else if (saisieMot === motActuel) {
+                if (extensionsRestantes > 0) {
+                    extensionsRestantes -= 1;
+                    rallongerBouclier(5000);
+                    genererMot();
+                }
+            }
+        }
+
+        // Shield backspace handling
+        if (vaisseau.shield && motActuel && e.key === "Backspace") {
+            saisieMot = saisieMot.slice(0, -1);
+        }
+
+        // Shooting with spacebar
+        if (e.key === " " || e.code === "Space") {
+            e.preventDefault(); // Prevent page scroll
+            if (peutTirer) {
+                tirs.push(
+                    new Tirer(
+                        vaisseau.x + vaisseau.largeur / 2,
+                        vaisseau.y + vaisseau.hauteur / 2,
+                        ctx,
+                        canvas,
+                    ),
+                );
+                console.log("Tir!");
+                peutTirer = false;
+
+                setTimeout(() => {
+                    peutTirer = true;
+                }, delaiTir);
+            }
+        }
+    });
+
+    // Handle window resize
+    window.addEventListener("resize", () => {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+    });
+}
+
 function initSpaceGame() {
     const canvas = document.getElementById("game");
     if (!canvas) return;
@@ -158,36 +250,8 @@ function initSpaceGame() {
     const waves = new Vagues(null, canvas);
     waves.startWave();
 
-    // Prevent context menu
-    canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-
-    // Mouse movement handler
-    function mouseMoveHandler(e) {
-        if (!vaisseau) return;
-        const rect = canvas.getBoundingClientRect();
-
-        // Account for canvas scaling (displayed size vs drawing surface)
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
-        const sourisX = (e.clientX - rect.left) * scaleX;
-        const sourisY = (e.clientY - rect.top) * scaleY;
-
-        const minX = 0;
-        const maxX = canvas.width - vaisseau.largeur;
-        const minY = 0;
-        const maxY = canvas.height - vaisseau.hauteur;
-
-        vaisseau.x = Math.max(
-            minX,
-            Math.min(maxX, sourisX - vaisseau.largeur / 2),
-        );
-        vaisseau.y = Math.max(
-            minY,
-            Math.min(maxY, sourisY - vaisseau.hauteur / 2),
-        );
-    }
-
-    document.addEventListener("mousemove", mouseMoveHandler);
+    // Setup all event listeners (centralized)
+    setupEventListeners(canvas, ctx);
 
     // Shield spawn scheduling
     function planifierApparition() {
@@ -692,64 +756,12 @@ function genererMot() {
     motDeadline = Date.now() + dureeMotMs;
 }
 
-function initKeyboardControls(canvas, ctx) {
-    window.addEventListener("keydown", (e) => {
-        if (!vaisseau) return;
-
-        // Shield word typing
-        if (
-            vaisseau.shield &&
-            motActuel &&
-            e.key &&
-            e.key.length === 1 &&
-            /[a-zA-Z]/.test(e.key)
-        ) {
-            saisieMot += e.key.toLowerCase();
-            if (!motActuel.startsWith(saisieMot)) {
-                saisieMot = "";
-            } else if (saisieMot === motActuel) {
-                if (extensionsRestantes > 0) {
-                    extensionsRestantes -= 1;
-                    rallongerBouclier(5000);
-                    genererMot();
-                }
-            }
-        }
-
-        // Shield backspace handling
-        if (vaisseau.shield && motActuel && e.key === "Backspace") {
-            saisieMot = saisieMot.slice(0, -1);
-        }
-
-        // Shooting
-        if (e.key === " " || e.code === "Space") {
-            if (peutTirer) {
-                tirs.push(
-                    new Tirer(
-                        vaisseau.x + vaisseau.largeur / 2,
-                        vaisseau.y + vaisseau.hauteur / 2,
-                        ctx,
-                        canvas,
-                    ),
-                );
-                console.log("Tir!");
-                peutTirer = false;
-
-                setTimeout(() => {
-                    peutTirer = true;
-                }, delaiTir);
-            }
-        }
-    });
-}
 
 // Vérifier régulièrement si le canvas existe
 let spaceGameCheckInterval = setInterval(() => {
     if (document.getElementById("game")) {
         clearInterval(spaceGameCheckInterval);
         const canvas = document.getElementById("game");
-        const ctx = canvas.getContext("2d");
         initSpaceGame();
-        initKeyboardControls(canvas, ctx);
     }
 }, 100);

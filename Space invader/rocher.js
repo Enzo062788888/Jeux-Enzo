@@ -38,15 +38,25 @@ export default class Rocher{
     }
 
     draw(ctx){
+        ctx.save();
+        
+        // Translate to rock center
+        ctx.translate(this.x, this.y);
+        
+        // Draw image centered at origin
         if (Rocher.imageLoaded && Rocher.rockImage) {
-            ctx.drawImage(Rocher.rockImage, this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+            const w = this.radius * 2;
+            const h = this.radius * 2;
+            ctx.drawImage(Rocher.rockImage, -this.radius, -this.radius, w, h);
         } else {
             // Fallback: draw gray circle if image not loaded
             ctx.fillStyle = 'gray';
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
             ctx.fill();
         }
+        
+        ctx.restore();
     }
 
 }

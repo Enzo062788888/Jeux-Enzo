@@ -13,19 +13,40 @@ export default class Vaisseau {
     }
 
     draw(ctx) {
+        // Determine which image to use
         let imgToUse = this.image;
         if (this.isDead && this.deathImage && this.deathImage.complete && this.deathImage.naturalWidth > 0) {
             imgToUse = this.deathImage;
         } else if ((this.shield || this.shieldedFromRocks) && this.shieldImage && this.shieldImage.complete && this.shieldImage.naturalWidth > 0) {
             imgToUse = this.shieldImage;
         }
-        if (imgToUse.complete && imgToUse.naturalWidth > 0) {
-            const baseScale = Math.min(this.hauteur / imgToUse.naturalHeight);
-            const w = imgToUse.naturalWidth * baseScale;
-            const h = imgToUse.naturalHeight * baseScale;
-            const dx = this.x + (this.largeur - w) / 2;
-            const dy = this.y + (this.hauteur - h) / 2;
-            ctx.drawImage(imgToUse, dx, dy, w, h);
+
+        // Image exists and is loaded
+        if (!imgToUse.complete || imgToUse.naturalWidth === 0) {
+            // Fallback: draw a simple rectangle
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(this.x, this.y, this.largeur, this.hauteur);
+            return;
         }
+
+        // Use ctx.save/restore and translate/rotate for proper positioning
+        ctx.save();
+        
+        // Translate to ship center
+        const centerX = this.x + this.largeur / 2;
+        const centerY = this.y + this.hauteur / 2;
+        ctx.translate(centerX, centerY);
+        
+        // Draw image centered at origin (0,0)
+        const baseScale = Math.min(
+            this.hauteur / imgToUse.naturalHeight,
+            this.largeur / imgToUse.naturalWidth
+        );
+        const w = imgToUse.naturalWidth * baseScale;
+        const h = imgToUse.naturalHeight * baseScale;
+        
+        ctx.drawImage(imgToUse, -w / 2, -h / 2, w, h);
+        
+        ctx.restore();
     }
 }
