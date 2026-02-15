@@ -1,0 +1,52 @@
+export default class Rocher{
+    static rockImage = null;
+    static imageLoaded = false;
+
+    static loadImage() {
+        if (!Rocher.rockImage) {
+            Rocher.rockImage = new Image();
+            Rocher.rockImage.onload = () => {
+                Rocher.imageLoaded = true;
+            };
+            Rocher.rockImage.onerror = () => {
+                console.warn("Failed to load rock image from rocher.png");
+                Rocher.imageLoaded = false;
+            };
+            Rocher.rockImage.src = "rocher.png";
+        }
+    }
+
+    constructor(canvasWidth, canvasHeight){
+        this.radius = 15 + Math.random() * 20;
+        
+        // Spawn at the top of the canvas with random X position, staying within bounds
+        this.x = this.radius + Math.random() * (canvasWidth - this.radius * 6);
+        this.y = -20;
+
+        this.speed = 1 + Math.random() * 2;
+        
+        this.canvasHeight = canvasHeight;
+    };
+
+    update() {
+        // Fall downward
+        this.y += this.speed;
+    }
+
+    isOutOfBounds() {
+        return this.y - this.radius > this.canvasHeight;
+    }
+
+    draw(ctx){
+        if (Rocher.imageLoaded && Rocher.rockImage) {
+            ctx.drawImage(Rocher.rockImage, this.x - this.radius, this.y - this.radius, this.radius * 2, this.radius * 2);
+        } else {
+            // Fallback: draw gray circle if image not loaded
+            ctx.fillStyle = 'gray';
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+    }
+
+}
